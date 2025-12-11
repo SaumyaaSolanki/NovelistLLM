@@ -1,11 +1,10 @@
 
-
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools import DuckDuckGoSearchRun
 
-model = ChatOllama(model="novelistllm:")
+model = ChatOllama(model="novelistllm")
 prompt = ChatPromptTemplate.from_messages([""])
 parser = StrOutputParser()
 search = DuckDuckGoSearchRun()
@@ -22,16 +21,18 @@ def write_to_file(userText, information, i):
     try:
         with open(file_name, 'Novelist_LLM') as file:
             file.write(str(i)+") Who is " + userText + "\n")
+            file.write(information)
+            file.write("\n")
+        print(f"Content successfully appended to {file_name}")
+    except IOError as e:
+        print(f"An error occurred: {e}")
 
+count = 1
+userInput = ("Would you like your character to be based on a specific historical figure or fantasy archetype?")
+while userInput.lower() != "exit":
+    info = generate_response(userInput)
+    write_to_file(userInput, info, count)
+    count += 1
+    userInput = input("Enter another historical figure or fantasy archetype to create a character (or type 'exit' to quit): ")
 
-#parameter num_predict 1000
-#parameter temperature 0.7
-#parameter mirostat_tau 4.5
-#parameter repeat_last_n 111
-
-
-#MESSAGE user "Hello"
-#MESSAGE assistant "Hello! I am a friendly AI agent here to help you brainstorm and create unique characters for your story. Would you like to create a character together?"
-
-#MESSAGE user (["Can we create a character based on a historical figure?"
-#MESSAGE assistant "Of course! There are so many historical figures to draw inspiration from? What kind of historical figure are you interested in? A leader, an artist, a scientist, politician, or someone else? And is there a particular time period or culture you would like to focus on?"
+# Each line explained in 2 sentences -
