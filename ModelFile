@@ -4,35 +4,216 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools import DuckDuckGoSearchRun
 
-model = ChatOllama(model="novelistllm")
-prompt = ChatPromptTemplate.from_messages([""])
+# EDIT 1: Model name must exist in `ollama list`
+model = ChatOllama(model="novelist:latest", temperature=0.7, mirostat_tau=0.5, repeat_last_n=150)
+
+# SYSTEM message belongs here in LangChain
+prompt = ChatPromptTemplate.from_messages([
+    ("system",
+     "You are a friendly AI agent that helps a novelist brainstorm diverse, non-cliché characters.\n"
+     "The PROGRAM will ask the user questions. Your job is to output persona-focused character sheets.\n"
+     "Be inclusive, respectful, and avoid stereotypes. Never use discriminatory/offensive language.\n"
+     "When the user provides extra details, incorporate them and refine/expand the character persona.\n"
+     "Avoid writing full plots; prioritize character persona and psychology."),
+    ("human", "Question: {question}\n\nContext:\n{context}")
+])
+
 parser = StrOutputParser()
 search = DuckDuckGoSearchRun()
-
 chain = prompt | model | parser
 
-def generate_response(userText):
-    context = search.invoke(f"Who is {userText}")
-    response = chain.invoke({"question": f"Summarize information about {userText}","context":context})
+
+# Historical character generator that MUST use web search
+def generate_historical_character(historical_type: str) -> str:
+    context = search.invoke(
+        f"famous {historical_type}s achievements personality traits notable figures"
+    )
+# With the help of AI, I brainstormed criteria and specify how exactly I wanted my responses to be formatted. AI gave me the code on how to implement this in my response.
+    response = chain.invoke({
+        "question": (
+            f"Using the WEB CONTEXT below, extract the NAMES of 4-6 real {historical_type}s.\n"
+            f"For each name, write EXACTLY ONE sentence: their most notable achievement and one defining personality trait.\n"
+            f"Only use names that appear in the WEB CONTEXT.\n\n"
+            f"Then synthesize ONE original character inspired by patterns across them.\n"
+            f"Focus on building the character's PERSONA (who they are day-to-day), not a full story.\n"
+            f"Make the character non-cliché and not a copy of any existing character.\n"
+            f"Do NOT reuse any of the example names.\n"
+            f"Output ONLY the following sections:\n"
+            f"- Name + age + pronouns\n"
+            f"- One-sentence vibe (how they come across)\n"
+            f"- Core values (3)\n"
+            f"- Strengths (3) and weaknesses (3)\n"
+            f"- Contradictions (2)\n"
+            f"- Speech style (cadence, favorite phrases, what they never say)\n"
+            f"- Mannerisms + tells (5)\n"
+            f"- Social style (with friends / strangers / authority)\n"
+            f"- Fears + boundaries (what they won't do)\n"
+            f"- Secrets (2) (one harmless, one serious)\n"
+            f"- Skills + blind spots\n"
+            f"- Moral line (what would make them snap)\n"
+            f"- A single internal conflict (1 sentence)\n"
+            f"- Background (5–7 sentences explaining upbringing, education, and formative experiences — no plot)\n"
+            f"- Relationships (3 bullet points: an ally, a rival, a soft spot)\n"
+            f"- Stress responses (how they react under pressure)\n"
+            f"- Habits & routines (morning, work, night)\n"
+            f"- What they want vs what they need (2 sentences)\n"
+            f"- How they change the room when they enter (1–2 sentences)\n"
+            f"Do NOT write a storyline, mission, or multi-step arc.\n"
+        ),
+        "context": context
+    })
     return response
 
-def write_to_file(userText, information, i):
+
+# Fictional character generator that MUST use web search (Used the help of AI for the criteria and formatting as well)
+def generate_fictional_character(genre: str) -> str:
+    context = search.invoke(
+        f"well-known {genre} characters personality traits archetypes list"
+    )
+
+    response = chain.invoke({
+        "question": (
+            f"Using the WEB CONTEXT below, extract the NAMES of 4-6 well-known {genre} characters.\n"
+            f"For each name, write EXACTLY ONE sentence: their defining personality trait and typical role/archetype.\n"
+            f"Only use names that appear in the WEB CONTEXT.\n\n"
+            f"Then synthesize ONE original character inspired by patterns across them.\n"
+            f"Focus on building the character's PERSONA (who they are day-to-day), not a full story.\n"
+            f"Make the character non-cliché and not a copy of any existing character.\n"
+            f"Do NOT reuse any of the example names.\n"
+            f"Output ONLY the following sections:\n"
+            f"- Name + age + pronouns\n"
+            f"- One-sentence vibe (how they come across)\n"
+            f"- Core values (3)\n"
+            f"- Strengths (3) and weaknesses (3)\n"
+            f"- Contradictions (2)\n"
+            f"- Speech style (cadence, favorite phrases, what they never say)\n"
+            f"- Mannerisms + tells (5)\n"
+            f"- Social style (with friends / strangers / authority)\n"
+            f"- Fears + boundaries (what they won't do)\n"
+            f"- Secrets (2) (one harmless, one serious)\n"
+            f"- Skills + blind spots\n"
+            f"- Moral line (what would make them snap)\n"
+            f"- A single internal conflict (1 sentence)\n"
+            f"- Background (5–7 sentences explaining upbringing, environment, and influences — no plot)\n"
+            f"- Relationships (3 bullet points: ally, rival, soft spot)\n"
+            f"- Stress responses (how they react under pressure)\n"
+            f"- Habits & routines (daily patterns)\n"
+            f"- What they want vs what they need (2 sentences)\n"
+            f"- How they change the room when they enter (1–2 sentences)\n"
+            f"Do NOT write a storyline, quest, or plot arc.\n"
+        ),
+        "context": context
+    })
+    return response
+
+# This part was AI generated
+def elaborate_character(current_character_text: str, user_details: str) -> str:
+    """Refine/expand the existing character persona based on the user's extra prompt."""
+    response = chain.invoke({
+        "question": (
+            "You will refine the character persona using the user's new details.\n"
+            "RULES:\n"
+            "- Keep it persona-focused (no plotline)\n"
+            "- Keep the same character unless the user explicitly asks to change identity\n"
+            "- Do NOT introduce copyrighted character names or existing franchises\n"
+            "- If user details conflict, ask 1 clarifying question at the end\n\n"
+            "Return the UPDATED persona in the same section format as before.\n"
+            "Do NOT write a storyline, quest, or plot arc."
+        ),
+        "context": f"CURRENT CHARACTER:\n{current_character_text}\n\nUSER DETAILS:\n{user_details}"
+    })
+    return response
+
+
+def write_to_file(title: str, information: str, i: int) -> None:
     file_name = "output.txt"
     try:
-        with open(file_name, 'Novelist_LLM') as file:
-            file.write(str(i)+") Who is " + userText + "\n")
+        with open(file_name, "a", encoding="utf-8") as file:
+            file.write(f"{i}) {title}\n")
             file.write(information)
-            file.write("\n")
+            file.write("\n\n")
         print(f"Content successfully appended to {file_name}")
     except IOError as e:
         print(f"An error occurred: {e}")
 
-count = 1
-userInput = ("Would you like your character to be based on a specific historical figure or fantasy archetype?")
-while userInput.lower() != "exit":
-    info = generate_response(userInput)
-    write_to_file(userInput, info, count)
-    count += 1
-    userInput = input("Enter another historical figure or fantasy archetype to create a character (or type 'exit' to quit): ")
 
-# Each line explained in 2 sentences -
+# Ask user if they want to create a character
+start = input("Would you like to create a character? (yes/exit): ").strip().lower()
+if start != "yes":
+    print("Have a nice day!")
+    raise SystemExit
+
+count = 1
+responses_since_check = 0
+
+# MAIN LOOP
+while True:
+    mode = input("Would you like your character to be inspired by historical figures or entirely fictional? (historical/fictional/exit): ").strip().lower()
+    if mode == "exit":
+        break
+
+    if mode == "historical":
+        sub_choice = input("What kind of historical character? (scientist, soldier, musician, etc.): ").strip()
+        info = generate_historical_character(sub_choice)
+        title = f"{mode} - {sub_choice}"
+
+    elif mode == "fictional":
+        sub_choice = input("What genre? (fantasy, horror, sci-fi, etc.): ").strip()
+        info = generate_fictional_character(sub_choice)
+        title = f"{mode} - {sub_choice}"
+
+    else:
+        print("Please type 'historical', 'fictional', or 'exit'.")
+        continue
+
+    print("\n--- MODEL RESPONSE ---\n")
+    print(info)
+    print("\n----------------------\n")
+
+    write_to_file(title, info, count)
+    count += 1
+    responses_since_check += 1
+
+    # Ask if user wants to elaborate on THIS character
+    elaborate = input("Would you like to elaborate on this character? (yes/no): ").strip().lower()
+    if elaborate == "yes":
+        while True:
+            user_details = input("What details would you like to add/change? (or type 'stop' to stop elaborating): ").strip()
+            if user_details.lower() == "stop":
+                break
+
+            info = elaborate_character(info, user_details)
+
+            print("\n--- UPDATED CHARACTER ---\n")
+            print(info)
+            print("\n-------------------------\n")
+
+            write_to_file(f"{title} (elaboration)", info, count)
+            count += 1
+            responses_since_check += 1
+
+            # After every three total responses (including elaborations), check if they want to continue
+            if responses_since_check >= 3:
+                keep_building = input("Do you want to keep building? (yes/no): ").strip().lower()
+                responses_since_check = 0
+                if keep_building != "yes":
+                    print("Have a nice day!")
+                    raise SystemExit
+
+            more = input("Add more details to this same character? (yes/no): ").strip().lower()
+            if more != "yes":
+                break
+
+    # After every three total responses (including elaborations), check if they want to continue
+    if responses_since_check >= 3:
+        keep_building = input("Do you want to keep building? (yes/no): ").strip().lower()
+        responses_since_check = 0
+        if keep_building != "yes":
+            break
+
+    # Ask if they want to create a new character
+    new_char = input("Would you like to create a new character? (yes/no): ").strip().lower()
+    if new_char != "yes":
+        break
+
+print("Have a nice day!")
